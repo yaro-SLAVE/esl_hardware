@@ -1,0 +1,80 @@
+openapi: '3.0.3'
+info:
+  title: ESL
+  version: '1.0'
+servers:
+  - url: http://localhost/
+tags:
+  - name: products
+    description: Методы, связанные с обновлением информации о товарах
+  - name: filmware
+    description: Методы, связанные с прошивкой устройства
+
+paths:
+  /api/product/:
+    post:
+      tags:
+        - products
+      security:
+        - bearer: []
+      summary: Обновление информации о продуктах
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+
+  /api/firmware/:  
+    post:
+      tags:
+        - filmware
+      security:
+        - bearer: []
+      summary: Загрузка новой прошивки
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firmware:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Ошибка в запросе
+        '403':
+          description: Forbiden
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+      description: Bearer токен, помещаемый в заголовок Authorization
+
+  schemas:
+    Product:
+      type: object
+      properties:
+        barcode:
+          type: string
+        shelf:
+          type: number
+        number:
+          type: number
+        short_name:
+          type: string
+        price:
+          type: string
+        have_promotion:
+          type: boolean
+        old_price:
+          type: string
+        
