@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Стеллаж с ячейками</title>
+</head>
+<body>
+
+    <div class="main-controls">
+        <button onclick="addShelf()">+ Добавить полку</button>
+        <button onclick="removeShelf()">- Удалить полку</button>
+    </div>
+
+    <div id="rack"></div>
+
+    <div id="items-pool" ondrop="drop(event)" ondragover="allowDrop(event)" style="display: flex; flex-direction: row;">
+        <div class="box" draggable="true" id="box-1" ondragstart="drag(event)">1</div>
+        <div class="box" draggable="true" id="box-2" ondragstart="drag(event)">2</div>
+        <div class="box" draggable="true" id="box-3" ondragstart="drag(event)">3</div>
+    </div>
+
+    <div id="status-log">Позиции: Ожидание...</div>
+</body>
+
+<script>
+    let shelfCount = 0;
+
+    function addShelf() {
+        shelfCount++;
+        const rack = document.getElementById('rack');
+        const shelfDiv = document.createElement('div');
+        shelfDiv.className = 'shelf-container';
+        shelfDiv.id = `shelf-${shelfCount}`;
+        
+        shelfDiv.innerHTML = `
+            <div class="shelf-header">
+                <span>Полка №${shelfCount}</span>
+                <div>
+                    <button onclick="addSlot('${shelfDiv.id}')">+ ячейка</button>
+                    <button onclick="removeSlot('${shelfDiv.id}')">- ячейка</button>
+                </div>
+            </div>
+            <div class="shelf-slots"></div>
+        `;
+        rack.appendChild(shelfDiv);
+        addSlot(shelfDiv.id); 
+        updatePositions();
+    }
+
+    function removeShelf() {
+        const rack = document.getElementById('rack');
+        if (rack.lastChild) {
+            rack.lastChild.querySelectorAll('.box').forEach(box => {
+                document.getElementById('items-pool').appendChild(box);
+            });
+            rack.removeChild(rack.lastChild);
+            updatePositions();
+        }
+    }
+
+    function addSlot(shelfId) {
+        const slotsContainer = document.querySelector(`#${shelfId} .shelf-slots`);
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.ondrop = drop;
+        slot.ondragover = allowDrop;
+        slot.ondragleave = dragLeave;
+        slotsContainer.appendChild(slot);
+        updatePositions();
+    }
+
+    function removeSlot(shelfId) {
+        const slotsContainer = document.querySelector(`#${shelfId} .shelf-slots`);
+        if (slotsContainer.lastChild) {
+            const box = slotsContainer.lastChild.querySelector('.box');
+            if (box) document.getElementById('items-pool').appendChild(box);
+            slotsContainer.removeChild(slotsContainer.lastChild);
+            updatePositions();
+        }
+    }
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+        if (ev.target.classList.contains('slot') || ev.target.id === 'items-pool') {
+            ev.target.classList.add('drag-over');
+        }
+    }
+
+    function dragLeave(ev) {
+        ev.target.classList.remove('drag-over');
+    }
+
+    function drag(ev) {
+        ev.dataTransfer.setData("boxId", ev.target.id);
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        ev.target.classList.remove('drag-over');
+        const boxId = ev.dataTransfer.getData("boxId");
+        const box = document.getElementById(boxId);
+        
+        let target = ev.target;
+        
+        if (target.classList.contains('box')) return;
+
+        if (target.classList.contains('slot') && target.children.length > 0) return;
+
+        target.appendChild(box);
+        updatePositions();
+    }
+
+    function updatePositions() {
+        const boxes = document.querySelectorAll('.box');
+        let status = "<strong>Позиции:</strong><br>";
+        
+        boxes.forEach(box => {
+            const parent = box.parentElement;
+            if (parent.id === 'items-pool') {
+                status += `Квадрат ${box.innerText}: Вне полок<br>`;
+            } else if (parent.classList.contains('slot')) {
+                const shelf = parent.closest('.shelf-container');
+                const shelfIndex = Array.from(document.getElementById('rack').children).indexOf(shelf) + 1;
+                const slotIndex = Array.from(parent.parentElement.children).indexOf(parent) + 1;
+                status += `Квадрат ${box.innerText}: Полка ${shelfIndex}, Ячейка ${slotIndex}<br>`;
+            }
+        });
+        document.getElementById('status-log').innerHTML = status;
+    }
+
+    addShelf();
+</script>
+
+<style>
+    :root { --wood: #8d6e63; --shelf-bg: #efebe9; }
+    body { font-family: sans-serif; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+    
+    .main-controls { margin-bottom: 20px; position: sticky; top: 10px; z-index: 10; }
+    button { padding: 8px 12px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background: white; }
+    button:hover { background: #eee; }
+
+    #rack { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
+    
+    .shelf-container { background: var(--wood); padding: 10px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .shelf-header { display: flex; justify-content: space-between; color: white; margin-bottom: 8px; font-size: 14px; }
+    
+    .shelf-slots { display: flex; flex-wrap: wrap; gap: 10px; min-height: 70px; background: var(--shelf-bg); padding: 10px; border-radius: 2px; }
+
+    .slot { width: 60px; height: 60px; border: 2px dashed #bbb; display: flex; align-items: center; justify-content: center; position: relative; }
+    .slot.drag-over { background: #c8e6c9; border-color: #4caf50; }
+
+    .box { width: 50px; height: 50px; background: #2196f3; color: white; display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; cursor: grab; border-radius: 4px; position: absolute; z-index: 5; }
+
+    #items-pool { width: 100%; max-width: 500px; margin-top: 20px; border: 2px solid #ccc; padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; }
+
+    #status-log { margin-top: 20px; background: #333; color: #fff; padding: 15px; border-radius: 8px; width: 100%; max-width: 500px; font-family: monospace; font-size: 12px; }
+</style>
+</html>
+
